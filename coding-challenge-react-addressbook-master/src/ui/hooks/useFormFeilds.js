@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 
 const useFormFields = (initialValue) => {
   const [fields, setFields] = useState(initialValue);
 
-  const handleFeildChange = (event) => {
+  const handleFieldChange = (event) => {
     const feildEvent = event.target;
     setFields({
       ...fields,
@@ -15,7 +15,7 @@ const useFormFields = (initialValue) => {
     setFields(initialValue);
   };
 
-  return [fields, handleFeildChange, resetFields];
+  return [fields, handleFieldChange, resetFields];
 };
 
 export default useFormFields;

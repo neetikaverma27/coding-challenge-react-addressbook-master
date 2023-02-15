@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 
 import Address from "./ui/components/Address/Address";
 import AddressBook from "./ui/components/AddressBook/AddressBook";
@@ -12,6 +12,26 @@ import useFormFeilds from "./ui/hooks/useFormFeilds";
 import Form from "./ui/components/Form/Form";
 import * as styles from "../styles/App.module.css";
 
+const fetchAddress = async (postCode, houseNumber) => {
+  const response = await fetch(
+    `/api/getAddresses?postcode=${postCode}&streetnumber=${houseNumber}`
+  );
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.errormessage);
+  }
+
+  return data;
+};
+
+const formFieldNames = {
+  postCode: "postCode",
+  houseNumber: "houseNumber",
+  firstName: "firstName",
+  lastName: "lastName",
+  selectedAddress: "selectedAddress",
+};
+
 function App() {
   /**
    * Form fields states
@@ -21,103 +41,73 @@ function App() {
    * - Remove all individual React.useState
    * - Remove all individual onChange handlers, like handlePostCodeChange for example
    */
-  const [fields, handleFeildChange, resetForm] = useFormFeilds({
-    postCode: "",
-    houseNumber: "",
-    firstName: "",
-    lastName: "",
-    selectedAddress: "",
+
+  const [fields, handleFieldChange, resetForm] = useFormFeilds({
+    [formFieldNames.postCode]: "",
+    [formFieldNames.houseNumber]: "",
+    [formFieldNames.firstName]: "",
+    [formFieldNames.lastName]: "",
+    [formFieldNames.selectedAddress]: "",
   });
   const { postCode, houseNumber, firstName, lastName, selectedAddress } =
     fields;
-  // const [postCode, setPostCode] = React.useState("");
-  // const [houseNumber, setHouseNumber] = React.useState("");
-  // const [firstName, setFirstName] = React.useState("");
-  // const [lastName, setLastName] = React.useState("");
-  //const [selectedAddress, setSelectedAddress] = React.useState("");
-  /**
-   * Results states
-   */
+
   const [error, setError] = React.useState(undefined);
   const [addresses, setAddresses] = React.useState([]);
-  /**
-   * Redux actions
-   */
+
   const { addAddress } = useAddressBook();
-
-  /**
-   * Text fields onChange handlers
-   */
-  // const handlePostCodeChange = (e) => setPostCode(e.target.value);
-
-  // const handleHouseNumberChange = (e) => setHouseNumber(e.target.value);
-
-  // const handleFirstNameChange = (e) => setFirstName(e.target.value);
-
-  // const handleLastNameChange = (e) => setLastName(e.target.value);
-
-  // const handleSelectedAddressChange = (e) => setSelectedAddress(e.target.value);
+  const clearField = useCallback(() => {
+    resetForm();
+    setAddresses([]);
+  }, [resetForm, setAddresses]);
 
   useEffect(() => {
-    setError("");
+    if (addresses.length > 0) {
+      setError("");
+    }
   }, [addresses, setError]);
 
-  const fetchAddress = async (postCode, houseNumber) => {
-    try {
-      const response = await fetch(
-        `/api/getAddresses?postcode=${postCode}&streetnumber=${houseNumber}`
-      );
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.errormessage);
-      } else {
-        setAddresses(data.details.map(transformAddress));
-        console.log(data);
+  /** TODO: Fetch addresses based on houseNumber and postCode using the local BE api
+   * - Example URL of API: /api/getAddresses?postcode=1345&streetnumber=350
+   * - Handle errors if they occur
+   * - Handle successful response by updating the `addresses` in the state using `setAddresses`
+   * - Make sure to add the houseNumber to each found address in the response using `transformAddress()` function
+   * - Bonus: Add a loading state in the UI while fetching addresses
+   */
+  const handleAddressSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+
+      try {
+        const response = await fetchAddress(postCode, houseNumber);
+        setAddresses(response.details.map(transformAddress));
+      } catch (error) {
+        setAddresses([]);
+        setError(error.message);
       }
-    } catch (error) {
-      setError(error.message);
-      console.log("ERROR", error);
-    }
-  };
+    },
+    [postCode, houseNumber, setAddresses, setError]
+  );
 
-  const handleAddressSubmit = async (e) => {
-    e.preventDefault();
-    fetchAddress(postCode, houseNumber);
+  const handlePersonSubmit = useCallback(
+    (e) => {
+      e.preventDefault();
 
-    /** TODO: Fetch addresses based on houseNumber and postCode using the local BE api
-     * - Example URL of API: /api/getAddresses?postcode=1345&streetnumber=350
-     * - Handle errors if they occur
-     * - Handle successful response by updating the `addresses` in the state using `setAddresses`
-     * - Make sure to add the houseNumber to each found address in the response using `transformAddress()` function
-     * - Bonus: Add a loading state in the UI while fetching addresses
-     */
-  };
+      if (!selectedAddress || !addresses.length) {
+        setError(
+          "No address selected, try to select an address or find one if you haven't"
+        );
+        return;
+      }
 
-  const handlePersonSubmit = (e) => {
-    e.preventDefault();
-
-    if (!selectedAddress || !addresses.length) {
-      setError(
-        "No address selected, try to select an address or find one if you haven't"
+      const foundAddress = addresses.find(
+        (address) => address.id === selectedAddress
       );
-      return;
-    }
 
-    const foundAddress = addresses.find(
-      (address) => address.id === selectedAddress
-    );
-
-    addAddress({ ...foundAddress, firstName, lastName });
-  };
-
-  // const resetForm = () => {
-  //   setPostCode("");
-  //   setHouseNumber("");
-  //   setAddresses("");
-  //   setFirstName("");
-  //   setLastName("");
-  //   setSelectedAddress("");
-  // };
+      addAddress({ ...foundAddress, firstName, lastName });
+    },
+    [setError, addAddress, firstName, lastName, addresses, selectedAddress]
+  );
 
   return (
     <main>
@@ -137,14 +127,14 @@ function App() {
           variant="primary"
         >
           <InputText
-            name="postCode"
-            onChange={handleFeildChange}
+            name={formFieldNames.postCode}
+            onChange={handleFieldChange}
             placeholder="Post Code"
             value={postCode}
           />
           <InputText
-            name="houseNumber"
-            onChange={handleFeildChange}
+            name={formFieldNames.houseNumber}
+            onChange={handleFieldChange}
             value={houseNumber}
             placeholder="House number"
           />
@@ -154,10 +144,10 @@ function App() {
           addresses.map((address) => {
             return (
               <Radio
-                name="selectedAddress"
+                name={formFieldNames.selectedAddress}
                 id={address.id}
                 key={address.id}
-                onChange={handleFeildChange}
+                onChange={handleFieldChange}
               >
                 <Address address={address} />
               </Radio>
@@ -172,14 +162,14 @@ function App() {
             variant="primary"
           >
             <InputText
-              name="firstName"
-              onChange={handleFeildChange}
+              name={formFieldNames.firstName}
+              onChange={handleFieldChange}
               placeholder="First name"
               value={firstName}
             />
             <InputText
-              name="lastName"
-              onChange={handleFeildChange}
+              name={formFieldNames.lastName}
+              onChange={handleFieldChange}
               value={lastName}
               placeholder="Last name"
             />
@@ -190,7 +180,7 @@ function App() {
         {error && <div className={styles.error}>{error}</div>}
 
         {/* TODO: Add a button to clear all form fields. Button must look different from the default primary button, see design. */}
-        <Button onClick={resetForm} variant="secondary">
+        <Button onClick={clearField} variant="secondary">
           Clear all feilds
         </Button>
       </Section>

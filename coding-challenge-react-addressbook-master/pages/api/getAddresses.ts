@@ -41,25 +41,17 @@ export default async function handle(
     query: { postcode, streetnumber },
   } = req;
 
-  if (!postcode || !streetnumber) {
-    return res.status(400).send({
-      status: "error",
-      errormessage: "Postcode and street number fields mandatory!",
-    });
-  }
-
-  if (postcode.length < 4) {
-    return res.status(400).send({
-      status: "error",
-      errormessage: "Postcode must be at least 4 digits!",
-    });
-  }
-
-  /** DONE: TODO: Refactor the code below so there is no duplication of logic for postCode/streetNumber digit checks. */
-
   try {
-    const postCode = integerValidation(postcode, "Postcode");
-    const streetNumber = integerValidation(streetnumber, "Street number");
+    mandatoryValidation(postcode);
+    mandatoryValidation(streetnumber);
+
+    lengthValidation(postcode);
+
+    /** DONE: TODO: Refactor the code below so there is no duplication of logic for postCode/streetNumber digit checks. */
+
+    integerValidation(postcode, "Postcode");
+    integerValidation(streetnumber, "Street number");
+
     const mockAddresses = generateMockAddresses(postcode, streetnumber);
 
     if (mockAddresses) {

@@ -25,7 +25,7 @@ export default function useAddressBook() {
       dispatch({ type: "address/remove", payload: id });
       updateDatabase();
     },
-    /** Loads saved addresses from the indexedDB */ 
+    /** Loads saved addresses from the indexedDB */
     loadSavedAddresses: async () => {
       const saved = await databaseService.getItem("addresses");
       // No saved item found, exit this function
