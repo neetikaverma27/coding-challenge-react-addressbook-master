@@ -5,7 +5,7 @@ const defaultState = {
 const reducer = (state = defaultState, action) => {
   switch (action.type) {
     case "address/add":
-      /** TODO: Prevent duplicate addresses */
+      /**DONE  TODO: Prevent duplicate addresses */
       const { payload: address } = action;
       const doesAddressExist = state.addresses.some((existing) => {
         return existing.id === address.id;
@@ -16,7 +16,7 @@ const reducer = (state = defaultState, action) => {
       }
       return { ...state, addresses: [...state.addresses, address] };
     case "address/remove":
-      /** TODO: Write a state update which removes an address from the addresses array. */
+      /** DONE TODO: Write a state update which removes an address from the addresses array. */
       const filteredArray = state.addresses.filter(
         (existing) => existing.id !== action.payload
       );

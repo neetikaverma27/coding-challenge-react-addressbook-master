@@ -5,24 +5,13 @@ import AddressBook from "./ui/components/AddressBook/AddressBook";
 import Button from "./ui/components/Button/Button";
 import InputText from "./ui/components/InputText/InputText";
 import Radio from "./ui/components/Radio/Radio";
+import Loader from "./ui/components/Loader/Loader";
 import Section from "./ui/components/Section/Section";
-import transformAddress from "./core/models/address";
 import useAddressBook from "./ui/hooks/useAddressBook";
-import useFormFeilds from "./ui/hooks/useFormFeilds";
+import useFormFeilds from "./ui/hooks/useFormFields";
+import useFetchAddresses from "./ui/hooks/useFetchAddresses";
 import Form from "./ui/components/Form/Form";
 import * as styles from "../styles/App.module.css";
-
-const fetchAddress = async (postCode, houseNumber) => {
-  const response = await fetch(
-    `/api/getAddresses?postcode=${postCode}&streetnumber=${houseNumber}`
-  );
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.errormessage);
-  }
-
-  return data;
-};
 
 const formFieldNames = {
   postCode: "postCode",
@@ -35,7 +24,7 @@ const formFieldNames = {
 function App() {
   /**
    * Form fields states
-   * TODO: Write a custom hook to set form fields in a more generic way:
+   * DONE: TODO: Write a custom hook to set form fields in a more generic way:
    * - Hook must expose an onChange handler to be used by all <InputText /> and <Radio /> components
    * - Hook must expose all text form field values, like so: { postCode: '', houseNumber: '', ...etc }
    * - Remove all individual React.useState
@@ -49,11 +38,14 @@ function App() {
     [formFieldNames.lastName]: "",
     [formFieldNames.selectedAddress]: "",
   });
+
   const { postCode, houseNumber, firstName, lastName, selectedAddress } =
     fields;
 
-  const [error, setError] = React.useState(undefined);
-  const [addresses, setAddresses] = React.useState([]);
+  const [error, setError] = React.useState("");
+
+  const [addresses, setAddresses, getAddresses, isLoading] =
+    useFetchAddresses();
 
   const { addAddress } = useAddressBook();
   const clearField = useCallback(() => {
@@ -65,9 +57,16 @@ function App() {
     if (addresses.length > 0) {
       setError("");
     }
-  }, [addresses, setError]);
+  }, [addresses, setError, postCode, houseNumber]);
 
-  /** TODO: Fetch addresses based on houseNumber and postCode using the local BE api
+  useEffect(() => {
+    if (error !== "") {
+      // reset all the fetched values
+      setAddresses([]);
+    }
+  }, [error]);
+
+  /**DONE TODO: Fetch addresses based on houseNumber and postCode using the local BE api
    * - Example URL of API: /api/getAddresses?postcode=1345&streetnumber=350
    * - Handle errors if they occur
    * - Handle successful response by updating the `addresses` in the state using `setAddresses`
@@ -79,10 +78,8 @@ function App() {
       e.preventDefault();
 
       try {
-        const response = await fetchAddress(postCode, houseNumber);
-        setAddresses(response.details.map(transformAddress));
+        await getAddresses(postCode, houseNumber);
       } catch (error) {
-        setAddresses([]);
         setError(error.message);
       }
     },
@@ -111,6 +108,7 @@ function App() {
 
   return (
     <main>
+      {isLoading && <Loader />}
       <Section>
         <h1>
           Create your own address book!
@@ -119,7 +117,7 @@ function App() {
             Enter an address by postcode add personal info and done! 👏
           </small>
         </h1>
-        {/* TODO: Create generic <Form /> component to display form rows, legend and a submit button  */}
+        {/* DONE TODO: Create generic <Form /> component to display form rows, legend and a submit button  */}
         <Form
           legend="🏠 Find an address"
           onSubmit={handleAddressSubmit}
@@ -153,8 +151,8 @@ function App() {
               </Radio>
             );
           })}
-        {/* TODO: Create generic <Form /> component to display form rows, legend and a submit button  */}
-        {selectedAddress && (
+        {/* DONE TODO: Create generic <Form /> component to display form rows, legend and a submit button  */}
+        {selectedAddress !== "" && error === "" && (
           <Form
             legend="✏️ Add personal info to address"
             onSubmit={handlePersonSubmit}
@@ -176,10 +174,10 @@ function App() {
           </Form>
         )}
 
-        {/* TODO: Create an <ErrorMessage /> component for displaying an error message */}
+        {/* DONE TODO: Create an <ErrorMessage /> component for displaying an error message */}
         {error && <div className={styles.error}>{error}</div>}
 
-        {/* TODO: Add a button to clear all form fields. Button must look different from the default primary button, see design. */}
+        {/* DONE TODO: Add a button to clear all form fields. Button must look different from the default primary button, see design. */}
         <Button onClick={clearField} variant="secondary">
           Clear all feilds
         </Button>
